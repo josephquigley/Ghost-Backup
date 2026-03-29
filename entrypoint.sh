@@ -56,7 +56,7 @@ calculate_next_run() {
     current_hour=$(date +%-H)
     current_day=$(date +%-d)
     current_month=$(date +%-m)
-    current_weekday=$(date +%u)  # 1-7, Monday=1
+    current_weekday=$(date +%w)  # 0-6, Sunday=0 (matches cron weekday numbering)
 
     # Check if current time matches schedule
     match_field() {
