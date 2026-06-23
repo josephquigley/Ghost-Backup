@@ -23,4 +23,9 @@ COPY scripts/ /scripts/
 
 RUN chmod +x /entrypoint.sh /scripts/*.sh
 
+# Container health: daemon alive + last backup succeeded + ran recently.
+# Thresholds tunable via BACKUP_ALIVE_MAX_AGE / BACKUP_HEALTH_MAX_AGE.
+HEALTHCHECK --interval=5m --timeout=10s --start-period=2m --retries=3 \
+    CMD ["/scripts/healthcheck.sh"]
+
 ENTRYPOINT ["/entrypoint.sh"]
