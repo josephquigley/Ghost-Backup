@@ -108,7 +108,16 @@ run_scheduled_loop() {
     log "Starting backup daemon with schedule: $schedule"
     log "Retention policy: daily=${BACKUP_KEEP_DAILY:-7}, weekly=${BACKUP_KEEP_WEEKLY:-4}, monthly=${BACKUP_KEEP_MONTHLY:-6}, yearly=${BACKUP_KEEP_YEARLY:-2}"
 
+    # Seed health so a freshly (re)started container is healthy immediately
+    # (validation just passed) instead of waiting for the first scheduled
+    # backup. The Docker HEALTHCHECK reads these (see scripts/healthcheck.sh).
+    echo "ok $(date +%s)" > /tmp/backup-health 2>/dev/null || true
+    touch /tmp/backup-alive 2>/dev/null || true
+
     while true; do
+        # Liveness beacon: prove the scheduler loop is still running.
+        touch /tmp/backup-alive 2>/dev/null || true
+
         local current_time
         current_time=$(date '+%Y-%m-%d %H:%M')
 
