@@ -57,8 +57,24 @@ cleanup() {
 
 trap cleanup EXIT
 
+# Local heartbeat for the Docker HEALTHCHECK (see scripts/healthcheck.sh):
+# "<ok|fail> <epoch>", rewritten every run so its mtime is the last-run time.
+# Best-effort: monitoring must never break or fail the backup itself.
+write_health() {
+    local state="$1"  # "ok" or "fail"
+    echo "$state $(date +%s)" > /tmp/backup-health 2>/dev/null || true
+}
+
 ping_healthcheck() {
     local status="$1"  # "success" or "fail"
+
+    # Update the local heartbeat FIRST, before the external-URL guard below,
+    # so the Docker healthcheck works even on a site with no hc-ping URL.
+    if [[ "$status" == "fail" ]]; then
+        write_health fail
+    else
+        write_health ok
+    fi
 
     if [[ -z "$HEALTHCHECK_URL" ]]; then
         return 0
