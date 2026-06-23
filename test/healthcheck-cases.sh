@@ -31,5 +31,7 @@ run_case "unhealthy: scheduler beacon stale" 1 \
     'echo "ok $(date +%s)" > /tmp/backup-health; touch /tmp/backup-alive; touch -d "10 minutes ago" /tmp/backup-alive'
 run_case "unhealthy: backup stale (>8d)" 1 \
     'touch /tmp/backup-alive; echo "ok $(date +%s)" > /tmp/backup-health; touch -d "9 days ago" /tmp/backup-health'
+run_case "unhealthy: health file malformed" 1 \
+    'touch /tmp/backup-alive; echo "garbage line" > /tmp/backup-health'
 
 echo "All healthcheck-cases passed."

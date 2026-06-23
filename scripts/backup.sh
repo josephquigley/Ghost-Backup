@@ -21,6 +21,11 @@ readonly KEEP_YEARLY="${BACKUP_KEEP_YEARLY:-2}"
 # Health check URL (optional)
 readonly HEALTHCHECK_URL="${BACKUP_HEALTHCHECK_URL:-}"
 
+# Mutable flags — track whether the backup began and whether it succeeded.
+# Used by cleanup() to write a default-fail health state on unguarded crashes.
+BACKUP_STARTED=0
+BACKUP_OK=0
+
 acquire_lock() {
     if [[ -f "$LOCK_FILE" ]]; then
         local lock_pid
@@ -51,6 +56,12 @@ log_error() {
 cleanup() {
     if [[ -d "$STAGING_DIR" ]]; then
         rm -rf "$STAGING_DIR"
+    fi
+    # If the backup began but never recorded success (e.g. an unguarded
+    # `set -e` abort), record failure so the Docker healthcheck doesn't keep
+    # reading a stale "ok". Best-effort; must never break cleanup.
+    if [[ "${BACKUP_STARTED:-0}" == 1 && "${BACKUP_OK:-0}" != 1 ]]; then
+        write_health fail
     fi
     release_lock
 }
@@ -213,6 +224,7 @@ apply_retention() {
 
 main() {
     acquire_lock
+    BACKUP_STARTED=1
 
     log "========================================="
     log "Ghost Backup - Starting"
@@ -283,6 +295,7 @@ main() {
     log "Backup completed successfully"
     log "========================================="
 
+    BACKUP_OK=1
     ping_healthcheck "success"
     exit 0
 }

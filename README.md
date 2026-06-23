@@ -158,7 +158,7 @@ Get notified when backups succeed or fail using [healthchecks.io](https://health
 
 If no pings are received within your configured grace period, you'll be notified that backups have stopped.
 
-The container also exposes a Docker `HEALTHCHECK`: it reports healthy only when the scheduler loop is alive, the last backup succeeded, and a backup ran within `BACKUP_HEALTH_MAX_AGE`. View it with `docker ps` (the `(healthy)` marker) or `docker inspect`.
+The container also exposes a Docker `HEALTHCHECK`: it reports healthy only when the scheduler loop is alive, the last backup succeeded, and a backup ran within `BACKUP_HEALTH_MAX_AGE`. View it with `docker ps` (the `(healthy)` marker) or `docker inspect`. One-shot command containers (e.g. `docker compose run --rm backup snapshots`) have no running scheduler and will therefore report `unhealthy` — this is expected and not a fault.
 
 ## What Gets Backed Up
 
