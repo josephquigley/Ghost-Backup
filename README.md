@@ -139,6 +139,8 @@ docker compose run --rm backup stats
 | `BACKUP_KEEP_MONTHLY` | `6` | Monthly snapshots to keep |
 | `BACKUP_KEEP_YEARLY` | `2` | Yearly snapshots to keep |
 | `BACKUP_HEALTHCHECK_URL` | | URL to ping on success/failure |
+| `BACKUP_ALIVE_MAX_AGE` | `2` | Minutes the Docker healthcheck tolerates without a scheduler heartbeat before reporting unhealthy |
+| `BACKUP_HEALTH_MAX_AGE` | `11520` | Minutes since the last successful backup before the Docker healthcheck reports unhealthy (8 days; size this to your `BACKUP_SCHEDULE` plus grace) |
 
 ## Health Check Notifications
 
@@ -155,6 +157,8 @@ Get notified when backups succeed or fail using [healthchecks.io](https://health
 - On failure: pings `https://hc-ping.com/your-uuid/fail`
 
 If no pings are received within your configured grace period, you'll be notified that backups have stopped.
+
+The container also exposes a Docker `HEALTHCHECK`: it reports healthy only when the scheduler loop is alive, the last backup succeeded, and a backup ran within `BACKUP_HEALTH_MAX_AGE`. View it with `docker ps` (the `(healthy)` marker) or `docker inspect`. One-shot command containers (e.g. `docker compose run --rm backup snapshots`) have no running scheduler and will therefore report `unhealthy` — this is expected and not a fault.
 
 ## What Gets Backed Up
 

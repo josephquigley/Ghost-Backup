@@ -21,6 +21,11 @@ readonly KEEP_YEARLY="${BACKUP_KEEP_YEARLY:-2}"
 # Health check URL (optional)
 readonly HEALTHCHECK_URL="${BACKUP_HEALTHCHECK_URL:-}"
 
+# Mutable flags — track whether the backup began and whether it succeeded.
+# Used by cleanup() to write a default-fail health state on unguarded crashes.
+BACKUP_STARTED=0
+BACKUP_OK=0
+
 acquire_lock() {
     if [[ -f "$LOCK_FILE" ]]; then
         local lock_pid
@@ -52,13 +57,35 @@ cleanup() {
     if [[ -d "$STAGING_DIR" ]]; then
         rm -rf "$STAGING_DIR"
     fi
+    # If the backup began but never recorded success (e.g. an unguarded
+    # `set -e` abort), record failure so the Docker healthcheck doesn't keep
+    # reading a stale "ok". Best-effort; must never break cleanup.
+    if [[ "${BACKUP_STARTED:-0}" == 1 && "${BACKUP_OK:-0}" != 1 ]]; then
+        write_health fail
+    fi
     release_lock
 }
 
 trap cleanup EXIT
 
+# Local heartbeat for the Docker HEALTHCHECK (see scripts/healthcheck.sh):
+# "<ok|fail> <epoch>", rewritten every run so its mtime is the last-run time.
+# Best-effort: monitoring must never break or fail the backup itself.
+write_health() {
+    local state="$1"  # "ok" or "fail"
+    echo "$state $(date +%s)" > /tmp/backup-health 2>/dev/null || true
+}
+
 ping_healthcheck() {
     local status="$1"  # "success" or "fail"
+
+    # Update the local heartbeat FIRST, before the external-URL guard below,
+    # so the Docker healthcheck works even on a site with no hc-ping URL.
+    if [[ "$status" == "fail" ]]; then
+        write_health fail
+    else
+        write_health ok
+    fi
 
     if [[ -z "$HEALTHCHECK_URL" ]]; then
         return 0
@@ -197,6 +224,7 @@ apply_retention() {
 
 main() {
     acquire_lock
+    BACKUP_STARTED=1
 
     log "========================================="
     log "Ghost Backup - Starting"
@@ -267,6 +295,7 @@ main() {
     log "Backup completed successfully"
     log "========================================="
 
+    BACKUP_OK=1
     ping_healthcheck "success"
     exit 0
 }

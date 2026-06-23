@@ -40,6 +40,7 @@ Ghost Backup is a Docker-based backup solution for [Ghost Docker](https://github
 - **scripts/validate.sh**: Validates environment variables, database connectivity, content directory, disk space, and restic repository access
 - **scripts/backup.sh**: Executes backups - dumps MySQL, runs restic backup, applies retention policy
 - **scripts/restore.sh**: Interactive restore - extracts snapshots, imports databases, and restores content files
+- **scripts/healthcheck.sh**: Docker HEALTHCHECK — passes when the scheduler beacon (`/tmp/backup-alive`) is fresh, `/tmp/backup-health` starts with `ok`, and the last run is within `BACKUP_HEALTH_MAX_AGE`.
 
 ### How Backups Work
 
@@ -135,6 +136,8 @@ docker run --rm ghost-backup help
 - `BACKUP_KEEP_MONTHLY` - Monthly snapshots to keep (default: `6`)
 - `BACKUP_KEEP_YEARLY` - Yearly snapshots to keep (default: `2`)
 - `BACKUP_HEALTHCHECK_URL` - URL to ping on success/failure (e.g., healthchecks.io or Uptime Kuma). On success, the URL is pinged as-is. On failure, `/fail` is appended to the URL (if supported by the monitoring service)
+- `BACKUP_ALIVE_MAX_AGE` - Minutes the Docker healthcheck tolerates without a scheduler heartbeat before reporting unhealthy (default: `2`)
+- `BACKUP_HEALTH_MAX_AGE` - Minutes since the last successful backup before the Docker healthcheck reports unhealthy (default: `11520`, i.e. 8 days; size this to your `BACKUP_SCHEDULE` plus grace)
 
 ### Cloud Credentials
 - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` - For S3
