@@ -11,3 +11,7 @@ Thumbs.db
 # Local testing
 .env
 data/
+
+# Superpowers planning docs/specs (local only)
+docs/superpowers/
+.superpowers/
